@@ -47,7 +47,13 @@ class MLP(object):
             gparams.append(gparam)
 
         lr = T.scalar("lr")
-        updates = RMSprop(self.params, gparams, lr)
+        updates = momentum(self.params, gparams, lr)
+        # try: 
+        #updates = sgd(self.params, gparams, lr)
+        #updates = rmsprop(self.params, gparams, lr)
+        #updates = adagrad(self.params, gparams, lr)
+        #updates = dadelta(self.params, gparams, lr)
+        #updates = adam(self.params, gparams, lr)
 
         self.train = theano.function(inputs = [X, Y, lr], outputs = [cost], updates = updates)
         self.predict = theano.function(inputs = [X], outputs = [activation])

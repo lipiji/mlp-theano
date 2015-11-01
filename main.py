@@ -7,7 +7,7 @@ import utils_pg as Utils
 from mlp import *
 import data
 
-lr = 0.01
+lr = 0.1
 batch_size = 100
 train_set, valid_set, test_set  = data.mnist(batch_size)
 
