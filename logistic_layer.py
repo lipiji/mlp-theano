@@ -3,7 +3,6 @@ import numpy as np
 import theano
 import theano.tensor as T
 from utils_pg import *
-from nn import * 
 
 class LogisticLayer(object):
     def __init__(self, shape, X):
