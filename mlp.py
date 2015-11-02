@@ -58,8 +58,3 @@ class MLP(object):
         self.train = theano.function(inputs = [X, Y, lr], outputs = [cost], updates = updates)
         self.predict = theano.function(inputs = [X], outputs = [activation])
     
-    def train(self, X, Y, lr):
-        return self.train(X, Y, lr)
-
-    def predict(self, X):
-        return self.predict(X)
