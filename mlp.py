@@ -8,15 +8,16 @@ from logistic_layer import *
 from updates import *
 
 class MLP(object):
-    def __init__(self, in_size, out_size, hidden_size):
+    def __init__(self, optimizer, in_size, out_size, hidden_size):
         X = T.matrix("X")
-        self.create_model(X, in_size, out_size, hidden_size)
+        self.create_model(optimizer, X, in_size, out_size, hidden_size)
 
-    def create_model(self, X, in_size, out_size, hidden_size):
+    def create_model(self, optimizer, X, in_size, out_size, hidden_size):
         self.layers = []
         self.X = X
         self.n_hlayers = len(hidden_size)
         self.params = []
+        self.optimizer = optimizer
 
         for i in xrange(self.n_hlayers):
             if i == 0:
@@ -47,14 +48,9 @@ class MLP(object):
             gparams.append(gparam)
 
         lr = T.scalar("lr")
-        updates = momentum(self.params, gparams, lr)
-        # try: 
-        #updates = sgd(self.params, gparams, lr)
-        #updates = rmsprop(self.params, gparams, lr)
-        #updates = adagrad(self.params, gparams, lr)
-        #updates = dadelta(self.params, gparams, lr)
-        #updates = adam(self.params, gparams, lr)
+        optimizer = eval(self.optimizer)
+        updates = optimizer(self.params, gparams, None, None, lr)
 
-        self.train = theano.function(inputs = [X, Y, lr], outputs = [cost], updates = updates)
-        self.predict = theano.function(inputs = [X], outputs = [activation])
+        self.train = theano.function(inputs = [X, Y, lr], outputs = cost, updates = updates)
+        self.predict = theano.function(inputs = [X], outputs = activation)
     

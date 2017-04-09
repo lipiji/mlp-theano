@@ -5,7 +5,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 import cPickle, gzip
-
+from random import shuffle
 curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
 
 def char_sequence():
@@ -38,22 +38,27 @@ def char_sequence():
 
 #data: http://deeplearning.net/data/mnist/mnist.pkl.gz
 def mnist(batch_size = 1):
-    def batch(X, Y, batch_size):
+    def batch(X, Y, batch_size, is_train = False):
         data_xy = {}
         batch_x = []
         batch_y = []
         batch_id = 0
-        for i in xrange(len(X)):
+        idx = [i for i in xrange(len(X))]
+        if is_train:
+            shuffle(idx)
+        j = 0
+        for i in idx:
             batch_x.append(X[i])
             y = np.zeros((10), dtype = theano.config.floatX)
             y[Y[i]] = 1
             batch_y.append(y)
-            if (len(batch_x) == batch_size) or (i == len(X) - 1):
+            if (len(batch_x) == batch_size) or (j == len(X) - 1):
                 data_xy[batch_id] = [np.matrix(batch_x, dtype = theano.config.floatX), \
                                      np.matrix(batch_y, dtype = theano.config.floatX)]
                 batch_id += 1
                 batch_x = []
                 batch_y = []
+            j += 1
         return data_xy
     f = gzip.open(curr_path + "/data/mnist.pkl.gz", "rb")
     train_set, valid_set, test_set = cPickle.load(f)

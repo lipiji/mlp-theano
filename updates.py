@@ -4,43 +4,14 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-def sgd(params, gparams, learning_rate = 0.1):
+
+def sgd(params, gparams, sub_params = None, sub_gparams = None, learning_rate = 0.1):
     updates = []
     for p, g in zip(params, gparams):
         updates.append((p, p - learning_rate * g))
     return updates
 
-def momentum(params, gparams, learning_rate = 0.1, momentum = 0.9):
-    updates = []
-    for p, g in zip(params, gparams):
-        v = p.get_value(borrow = True)
-        velocity = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
-        x = momentum * velocity - learning_rate * g
-        updates.append((velocity, x))
-        updates.append((p, p + x))
-    return updates
-
-def rmsprop(params, gparams, learning_rate = 0.01, rho = 0.9, epsilon = 1e-6):
-    updates = []
-    for p, g in zip(params, gparams):
-        v = p.get_value(borrow = True)
-        acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
-        acc_new = rho * acc + (1 - rho) * g ** 2
-        updates.append((acc, acc_new))
-        updates.append((p, p - learning_rate * g / T.sqrt(acc_new + epsilon)))
-    return updates
-
-def adagrad(params, gparams, learning_rate = 1.0, epsilon = 1e-6):
-    updates = []
-    for p, g in zip(params, gparams):
-        v = p.get_value(borrow = True)
-        acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
-        acc_new = acc + g ** 2
-        updates.append((acc, acc_new))
-        updates.append((p, p - learning_rate * g / T.sqrt(acc_new + epsilon)))
-    return updates
-
-def dadelta(params, gparams, learning_rate = 1.0, rho = 0.95, epsilon = 1e-6):
+def adadelta(params, gparams, sub_params = None, sub_gparams = None, learning_rate = 1.0, rho = 0.95, epsilon = 1e-6):
     updates = []
     for p, g in zip(params, gparams):
         v = p.get_value(borrow = True)
@@ -55,13 +26,37 @@ def dadelta(params, gparams, learning_rate = 1.0, rho = 0.95, epsilon = 1e-6):
 
         delta_acc_new = rho * delta_acc + (1 - rho) * update ** 2
         updates.append((delta_acc, delta_acc_new))
+
     return updates
 
-def adam(params, gparams, learning_rate = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8):
+def adapg(params, gparams, sub_params= None, sub_gparams= None, learning_rate = 1.0, beta=0.9, rho = 0.95, epsilon = 1e-6):
+    updates = []
+    for p, g in zip(params, gparams):
+        v = p.get_value(borrow = True)
+        m_pre = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        delta_acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        
+        m_t = beta * m_pre + (1 - beta) * g
+        acc_new = rho * acc + (1 - rho) * g ** 2
+        updates.append((m_pre, m_t))
+        updates.append((acc, acc_new))
+        
+        update = (m_t * T.sqrt(delta_acc + epsilon) / T.sqrt(acc_new + epsilon))
+        updates.append((p, p - learning_rate * update))
+
+        delta_acc_new = rho * delta_acc + (1 - rho) * update ** 2
+        updates.append((delta_acc, delta_acc_new))
+
+    return updates
+
+
+def adam(params, gparams, sub_params= None, sub_gparams= None, learning_rate = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8):
     updates = []
     t_pre = theano.shared(np.asarray(.0, dtype=theano.config.floatX))
     t = t_pre + 1
     a_t = learning_rate * T.sqrt(1 - beta2 ** t) / (1 - beta1 ** t)
+
     for p, g in zip(params, gparams):
         v = p.get_value(borrow = True)
         m_pre = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
@@ -77,3 +72,49 @@ def adam(params, gparams, learning_rate = 0.001, beta1 = 0.9, beta2 = 0.999, eps
 
     updates.append((t_pre, t))
     return updates
+
+def momentum(params, gparams, sub_params= None, sub_gparams= None, learning_rate = 0.1, momentum = 0.9):
+    updates = []
+    for p, g in zip(params, gparams):
+        v = p.get_value(borrow = True)
+        velocity = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        x = momentum * velocity - learning_rate * g
+        updates.append((velocity, x))
+        updates.append((p, p + x))
+        
+    return updates
+
+def nesterov_momentum(params, gparams, sub_params= None, sub_gparams= None, learning_rate = 0.1, momentum = 0.9):
+    updates = []
+    for p, g in zip(params, gparams):
+        v = p.get_value(borrow = True)
+        velocity = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        x = momentum * velocity - learning_rate * g
+        updates.append((velocity, x))
+        inc = momentum * x - learning_rate * g
+        updates.append((p, p + inc))
+    return updates
+
+def rmsprop(params, gparams, sub_params= None, sub_gparams= None, learning_rate = 0.001, rho = 0.9, epsilon = 1e-6):
+    updates = []
+    for p, g in zip(params, gparams):
+        v = p.get_value(borrow = True)
+        acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        acc_new = rho * acc + (1 - rho) * g ** 2
+        updates.append((acc, acc_new))
+        updates.append((p, p - learning_rate * g / T.sqrt(acc_new + epsilon)))
+
+    return updates
+
+def adagrad(params, gparams,  sub_params= None, sub_gparams= None, learning_rate = 0.01, epsilon = 1e-6):
+    updates = []
+    for p, g in zip(params, gparams):
+        v = p.get_value(borrow = True)
+        acc = theano.shared(np.zeros(v.shape, dtype = v.dtype), broadcastable = p.broadcastable)
+        acc_new = acc + g ** 2
+        updates.append((acc, acc_new))
+        updates.append((p, p - learning_rate * g / T.sqrt(acc_new + epsilon)))
+    
+    return updates
+
+

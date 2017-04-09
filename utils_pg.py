@@ -2,6 +2,12 @@
 import numpy as np
 import theano
 import theano.tensor as T
+import theano.sandbox.cuda
+
+# set use gpu programatically
+def use_gpu(gpu_id):
+    if gpu_id > -1:
+        theano.sandbox.cuda.use("gpu" + str(gpu_id))
 
 def floatX(X):
     return np.asarray(X, dtype=theano.config.floatX)
